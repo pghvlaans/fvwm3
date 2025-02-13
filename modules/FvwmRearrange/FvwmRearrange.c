@@ -97,6 +97,7 @@ static void	   free_window_list(window_list);
 
 /* Computation variables */
 int box_x, box_y, box_w, box_h; /* Box dimensions. */
+int pg_x, pg_y, pg_w, pg_h;     /* Dimensions of the current page. */
 int usr_l = 0, usr_r = 0;	/* User adjustments to box. */
 int usr_t = 0, usr_b = 0;
 int inc_x = 0, inc_y = 0;	/* FvwmCascade increment sizes. */
@@ -129,6 +130,7 @@ int transients	 = 0;
 int maximized	 = 1;
 int titled	 = 1;
 int desk	 = 0;
+int page	 = 0;
 int reversed	 = 0;
 int do_ewmhiwa	 = 0;
 int is_init	 = 1;
@@ -343,9 +345,15 @@ is_suitable_window(unsigned long *body)
 		int y = (int)cfgpacket->frame_y;
 		int w = (int)cfgpacket->frame_width;
 		int h = (int)cfgpacket->frame_height;
-		if (x >= box_x + box_w || x + w <= box_x
-		    || y >= box_y + box_h || y + h <= box_y)
-			return 0;
+		if (page) {
+			if (x >= pg_x + pg_w || x + w <= pg_x
+			   || y >= pg_y + pg_h || y + h <= pg_y)
+			   return 0;
+		} else {
+			if (x >= box_x + box_w || x + w <= box_x
+			   || y >= box_y + box_h || y + h <= box_y)
+			   return 0;
+		}
 	}
 
 	if (!transients && IS_TRANSIENT(cfgpacket))
@@ -761,6 +769,8 @@ parse_args(int argc, char *argv[], int argi)
 			titled = 0;
 		} else if (StrEquals(argv[argi], "-desk")) {
 			desk = 1;
+		} else if (StrEquals(argv[argi], "-page")) {
+			page = 1;
 		} else if (StrEquals(argv[argi], "-ewmhiwa")) {
 			do_ewmhiwa = 1;
 
@@ -809,6 +819,12 @@ void
 update_sizes(char *argv[])
 {
 	int left = 0, top = 0;
+
+	/* Preserve unadjusted box size in case of -page */
+	pg_x = box_x;
+	pg_y = box_y;
+	pg_w = box_w;
+	pg_h = box_h;
 
 	/* Adjust box size first. */
 	if (usr_l > 0)
